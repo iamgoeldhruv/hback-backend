@@ -10,4 +10,7 @@ class Ambulance(models.Model):
     is_assigned = models.BooleanField(default=False)
     assigned_location_latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     assigned_location_longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    requester_ip = models.GenericIPAddressField(blank=True, null=True)
+    def __str__(self):
+        return self.number_plate
 
