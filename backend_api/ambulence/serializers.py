@@ -14,8 +14,8 @@ class AmbulanceCurrentLocationSerializer(serializers.ModelSerializer):
 
 class AmbulanceSerializer(serializers.ModelSerializer):
     requester_ip = serializers.IPAddressField()
-    assigned_location_latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
-    assigned_location_longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    assigned_location_latitude = serializers.DecimalField(max_digits=15, decimal_places=10)
+    assigned_location_longitude = serializers.DecimalField(max_digits=15, decimal_places=10)
 
     class Meta:
         model = models.Ambulance

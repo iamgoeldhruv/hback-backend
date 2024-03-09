@@ -3,29 +3,26 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework import generics
 from rest_framework.response import Response
+from rest_framework.decorators import api_view
 import requests
 from .import models
 from .import serializers
+import json
 
 
-# Create your views here.
-class AmbulanceLocationUpdateAPIView(APIView):
-    def post(self,request):
-        serializer = serializers.AmbulanceLocationUpdateSerializer(data=request.data)
-        number_plate = serializer.validated_data['number_plate']
-        current_location_latitude = serializer.validated_data['current_location_latitude']
-        current_location_longitude = serializer.validated_data['current_location_longitude']
-        try:
-            ambulance = models.Ambulance.objects.get(number_plate=number_plate)
-            ambulance.current_location_latitude = current_location_latitude
-            ambulance.current_location_longitude = current_location_longitude
+@api_view(['PUT'])
+def updateAmbulance(request):
+     number_plate = request.data["number_plate"]
+     current_loc_lat = request.data["current_location_latitude"]
+     current_loc_long = request.data["current_location_longitude"]
 
-            ambulance.save()
-            return Response({'message': 'Ambulance location updated successfully.'}, status=status.HTTP_200_OK)
-        except models.Ambulance.DoesNotExist:
-                return Response({'error': 'no such ambulence.'}, status=status.HTTP_404_NOT_FOUND)
+     amb = models.Ambulance.objects.filter(number_plate=number_plate)[0]
+     amb.current_location_latitude = current_loc_lat
+     amb.current_location_longitude = current_loc_long
 
-        
+     amb.save()
+
+     return Response("Done!")         
         
 class GetAmbulanceLocationAPIView(APIView):
     def get(self, request):
@@ -64,6 +61,8 @@ class AssignAmbuanceView(generics.GenericAPIView):
           if assigned_ambulance != None:
                assigned_ambulance.is_assigned = True
                assigned_ambulance.requester_ip = request.META.get('REMOTE_ADDR')  
+               assigned_ambulance.assigned_location_latitude=end_location_latitude
+               assigned_ambulance.assigned_location_longitude=end_location_longitude
                assigned_ambulance.save()
                serializer = self.get_serializer(assigned_ambulance)
                return Response(serializer.data)
