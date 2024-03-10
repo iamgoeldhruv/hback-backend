@@ -95,7 +95,7 @@ class RemainingTimeView(generics.GenericAPIView):
                  response=requests.get(api_url)
                  if response.status_code == 200:
                     time_left = response.json()["features"][0]["properties"]["segments"][0]["duration"]
-                    return Response({"time_left": ceil((time_left)/60)})
+                    return Response({"time_left": ceil((time_left)/60),"latitude":ambulance.current_location_latitude,"longitude":ambulance.current_location_longitude})
                  else:
                     print(response.content)
                     return Response({"message": "Failed to retrieve time from API"}, status=response.status_code)
