@@ -8,6 +8,8 @@ import requests
 from .import models
 from .import serializers
 import json
+from math import ceil
+
 
 
 @api_view(['PUT'])
@@ -21,8 +23,16 @@ def updateAmbulance(request):
      amb.current_location_longitude = current_loc_long
 
      amb.save()
+     
+     print("xyz")
+     print(number_plate)
+     print(amb.current_location_latitude)
 
-     return Response("Done!")         
+     
+
+     return Response("Done!") 
+     
+      
         
 class GetAmbulanceLocationAPIView(APIView):
     def get(self, request):
@@ -42,21 +52,25 @@ class AssignAmbuanceView(generics.GenericAPIView):
           end_location_longitude = request.query_params.get('assigned_location_longitude')
           mtime=float('inf')
           assigned_ambulance=None
+          co_ords = None
           for ambulance in ambulances:
-               start_location = f"xyz;{ambulance.current_location_latitude},{ambulance.current_location_longitude}"
-               end_location = f"uvw;{end_location_latitude},{end_location_longitude}"
+               start_location = f"{ambulance.current_location_longitude},{ambulance.current_location_latitude}"
+               end_location = f"{end_location_longitude},{end_location_latitude}"
                print( start_location)
-               api_url = f"https://wps.hereapi.com/v8/findsequence2?apiKey=dFfyuh7vgDXD4w4FCqyHp7A7HVJyAGebVkUYQzt34gw&start={start_location}&end={end_location}&mode=truck"
+               api_url = f"https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248258dee8d25fb456d9798ddc3f7741e68&start={start_location}&end={end_location}"
                response=requests.get(api_url)
+               print(response.content)
                if response.status_code == 200:
-                    time=response.json()["results"][0]["time"]
-                    
+                    time=response.json()["features"][0]["properties"]["segments"][0]["duration"]
+                   
                     print(time)
                     time = float(time)
-                    print(type(time))
+                    print(type(time))   
                     if(mtime>=float(time)):
                          print("Compared")
+                         co_ords = response.json()["features"][0]["geometry"]
                          mtime=time
+                         print("MIN YIMR" + str(time))
                          assigned_ambulance=ambulance
           if assigned_ambulance != None:
                assigned_ambulance.is_assigned = True
@@ -65,9 +79,37 @@ class AssignAmbuanceView(generics.GenericAPIView):
                assigned_ambulance.assigned_location_longitude=end_location_longitude
                assigned_ambulance.save()
                serializer = self.get_serializer(assigned_ambulance)
-               return Response(serializer.data)
+               return Response({"data":serializer.data,"time":int(mtime/60) , "waypoints" : json.dumps(co_ords) })
           else:
                return Response({"message": "No available ."}, status=404)
+          
+class RemainingTimeView(generics.GenericAPIView):
+     def get(self,request):
+           requester_ip = request.META.get('REMOTE_ADDR')
+           try:
+                 ambulance = models.Ambulance.objects.get(requester_ip=requester_ip)
+                 start_location=f"{ambulance.current_location_longitude},{ambulance.current_location_latitude}"
+                 end_location=f"{ambulance.assigned_location_longitude},{ambulance.assigned_location_latitude}"
+                 api_url = f"https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248258dee8d25fb456d9798ddc3f7741e68&start={start_location}&end={end_location}"
+                 print(api_url)
+                 response=requests.get(api_url)
+                 if response.status_code == 200:
+                    time_left = response.json()["features"][0]["properties"]["segments"][0]["duration"]
+                    return Response({"time_left": ceil((time_left)/60)})
+                 else:
+                    print(response.content)
+                    return Response({"message": "Failed to retrieve time from API"}, status=response.status_code)
+                 
+           except models.Ambulance.DoesNotExist:
+                 return Response({"message": "so such ambulence exist"}, status=404)
+
+
+
+                      
+
+
+          
+ 
 
                
 
