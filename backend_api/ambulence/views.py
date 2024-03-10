@@ -9,6 +9,8 @@ from .import models
 from .import serializers
 import json
 from math import ceil
+import threading
+     
 
 
 
@@ -24,12 +26,9 @@ def updateAmbulance(request):
 
      amb.save()
      
-     print("xyz")
-     print(number_plate)
-     print(amb.current_location_latitude)
 
      
-
+     print(amb.current_location_latitude)
      return Response("Done!") 
      
       
@@ -79,6 +78,8 @@ class AssignAmbuanceView(generics.GenericAPIView):
                assigned_ambulance.assigned_location_longitude=end_location_longitude
                assigned_ambulance.save()
                serializer = self.get_serializer(assigned_ambulance)
+               thread = threading.Thread(target= lambda: UpdateLocation(co_ords["coordinates"],assigned_ambulance.number_plate))
+               thread.start()
                return Response({"data":serializer.data,"time":int(mtime/60) , "waypoints" : json.dumps(co_ords) })
           else:
                return Response({"message": "No available ."}, status=404)
@@ -91,7 +92,7 @@ class RemainingTimeView(generics.GenericAPIView):
                  start_location=f"{ambulance.current_location_longitude},{ambulance.current_location_latitude}"
                  end_location=f"{ambulance.assigned_location_longitude},{ambulance.assigned_location_latitude}"
                  api_url = f"https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248258dee8d25fb456d9798ddc3f7741e68&start={start_location}&end={end_location}"
-                 print(api_url)
+                
                  response=requests.get(api_url)
                  if response.status_code == 200:
                     time_left = response.json()["features"][0]["properties"]["segments"][0]["duration"]
@@ -102,6 +103,58 @@ class RemainingTimeView(generics.GenericAPIView):
                  
            except models.Ambulance.DoesNotExist:
                  return Response({"message": "so such ambulence exist"}, status=404)
+
+import requests
+import json
+import time
+
+def UpdateLocation(temp,number):
+    waypoints = {
+        "coordinates": temp,
+        "type": "LineString"
+    }
+    total_time = 36*180
+    x = len(waypoints["coordinates"])
+    for i, coordinate in enumerate(waypoints["coordinates"]):
+        
+        print(i,coordinate[1])
+        url = "http://10.61.24.165:8000/api/update-ambulance-location/"
+        data = {
+        "number_plate": number,
+        "current_location_latitude": coordinate[1],  
+        "current_location_longitude": coordinate[0], 
+        
+        }
+        print("FROM FONW" + str(data))
+        
+        time.sleep(3)
+        try:
+            response = requests.put(url, json=data)
+
+        
+            if response.status_code == 200:
+               #  print("Ambulance location updated successfully.")
+                 pass
+            else:
+                print("\n")
+                print("\n")
+                print("\n")
+
+                print(response.content)
+
+                print("\n")
+                print("\n")
+                print("\n")
+
+                print("Failed to update ambulance location.")
+                
+        except:
+            break
+
+
+        
+
+    
 
 
 
