@@ -58,7 +58,7 @@ class AssignAmbuanceView(generics.GenericAPIView):
                print( start_location)
                api_url = f"https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248258dee8d25fb456d9798ddc3f7741e68&start={start_location}&end={end_location}"
                response=requests.get(api_url)
-               print(response.content)
+               #print(response.content)
                if response.status_code == 200:
                     time=response.json()["features"][0]["properties"]["segments"][0]["duration"]
                    
@@ -69,7 +69,6 @@ class AssignAmbuanceView(generics.GenericAPIView):
                          print("Compared")
                          co_ords = response.json()["features"][0]["geometry"]
                          mtime=time
-                         print("MIN YIMR" + str(time))
                          assigned_ambulance=ambulance
           if assigned_ambulance != None:
                assigned_ambulance.is_assigned = True
@@ -98,7 +97,6 @@ class RemainingTimeView(generics.GenericAPIView):
                     time_left = response.json()["features"][0]["properties"]["segments"][0]["duration"]
                     return Response({"time_left": ceil((time_left)/60),"latitude":ambulance.current_location_latitude,"longitude":ambulance.current_location_longitude})
                  else:
-                    print(response.content)
                     return Response({"message": "Failed to retrieve time from API"}, status=response.status_code)
                  
            except models.Ambulance.DoesNotExist:
@@ -109,16 +107,19 @@ import json
 import time
 
 def UpdateLocation(temp,number):
+   
+    
     waypoints = {
         "coordinates": temp,
         "type": "LineString"
     }
     total_time = 36*180
+   
     x = len(waypoints["coordinates"])
     for i, coordinate in enumerate(waypoints["coordinates"]):
-        
+     
         print(i,coordinate[1])
-        url = "http://10.61.24.165:8000/api/update-ambulance-location/"
+        url = "http://192.168.20.13:8000/api/update-ambulance-location/"
         data = {
         "number_plate": number,
         "current_location_latitude": coordinate[1],  
@@ -133,8 +134,8 @@ def UpdateLocation(temp,number):
 
         
             if response.status_code == 200:
-               #  print("Ambulance location updated successfully.")
-                 pass
+                print("Ambulance location updated successfully.")
+                
             else:
                 print("\n")
                 print("\n")
